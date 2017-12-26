@@ -204,6 +204,7 @@
         <item>de</item>
         <item>el</item>
         <item>eo</item>
+        <item>en</item>
         <item>es</item>
         <item>eu</item>
         <item>fi</item>
@@ -294,10 +295,13 @@
 
     <string name="settings_key_always_hide_language_key">settings_key_always_hide_language_key</string>
 
-    <string name="settings_key_support_password_keyboard_type_state">settings_key_support_password_keyboard_type_state</string>
     <string name="settings_key_persistent_layout_per_package_id_mapping">settings_key_persistent_layout_per_package_id_mapping</string>
 
     <string name="settings_key_quick_fix">quick_fix</string>
 
     <string name="settings_key_layout_for_internet_fields">settings_key_layout_for_internet_fields</string>
+
+    <string name="settings_key_pop_text_option">settings_key_pop_text_option</string>
+
+    <string name="settings_key_theme_case_type_override">settings_key_theme_case_type_override</string>
 </resources>

@@ -25,11 +25,13 @@ import android.support.v4.content.SharedPreferencesCompat;
 import android.view.Gravity;
 
 import com.anysoftkeyboard.api.KeyCodes;
+import com.anysoftkeyboard.keyboards.Keyboard;
 import com.anysoftkeyboard.utils.Logger;
 import com.menny.android.anysoftkeyboard.BuildConfig;
 import com.menny.android.anysoftkeyboard.R;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener {
@@ -55,6 +57,7 @@ public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener 
     private boolean mUseFullScreenInputInPortrait = false;
     private boolean mUseChewbacca = true;
     private boolean mUseKeyRepeat = true;
+    private final boolean[] mEnableStateForRowModes = new boolean[]{true, true, true, true};
     private float mKeysHeightFactorInPortrait = 1.0f;
     private float mKeysHeightFactorInLandscape = 1.0f;
     private boolean mInsertSpaceAfterCandidatePick = true;
@@ -77,7 +80,6 @@ public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener 
     private boolean mIsDoubleSpaceChangesToPeroid = true;
     private boolean mShouldPopupForLanguageSwitch = false;
     private boolean mHideSoftKeyboardWhenPhysicalKeyPressed = true;
-    private boolean mSupportPasswordKeyboardMode = true;
     private boolean mUse16KeysSymbolsKeyboard = false;
     private boolean mUseBackword = true;
     //      private boolean mShowIconForSmileyKey = false;
@@ -99,7 +101,7 @@ public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener 
     private long mFirstTimeCurrentVersionInstalled;
     private int mFirstAppVersionInstalled;
 
-    private final LinkedList<OnSharedPreferenceChangeListener> mPreferencesChangedListeners = new LinkedList<>();
+    private final List<OnSharedPreferenceChangeListener> mPreferencesChangedListeners = new ArrayList<>(10);
     private boolean mAutomaticallySwitchToAppLayout = true;
 
     public AskPrefsImpl(Context context) {
@@ -481,10 +483,6 @@ public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener 
                 mContext.getResources().getBoolean(R.bool.settings_default_hide_soft_when_physical));
         Logger.d(TAG, "** mHideSoftKeyboardWhenPhysicalKeyPressed: " + mHideSoftKeyboardWhenPhysicalKeyPressed);
 
-        mSupportPasswordKeyboardMode = sp.getBoolean(mContext.getString(R.string.settings_key_support_password_keyboard_type_state),
-                mContext.getResources().getBoolean(R.bool.settings_default_bool_support_password_keyboard_type_state));
-        Logger.d(TAG, "** mSupportPasswordKeyboardMode: " + mSupportPasswordKeyboardMode);
-
         mUse16KeysSymbolsKeyboard = sp.getBoolean(mContext.getString(R.string.settings_key_use_16_keys_symbols_keyboards),
                 mContext.getResources().getBoolean(R.bool.settings_default_use_16_keys_symbols_keyboards));
         Logger.d(TAG, "** mUse16KeysSymbolsKeyboard: " + mUse16KeysSymbolsKeyboard);
@@ -577,8 +575,11 @@ public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener 
                 mContext.getResources().getBoolean(R.bool.settings_default_always_hide_language_key));
         Logger.d(TAG, "** mAlwaysHideLanguageKey: " + mAutomaticallySwitchToAppLayout);
 
+        for (int rowModeIndex = 0; rowModeIndex < mEnableStateForRowModes.length; rowModeIndex++) {
+            mEnableStateForRowModes[rowModeIndex] = sp.getBoolean(AskPrefs.ROW_MODE_ENABLED_PREFIX + (rowModeIndex + 2), true);
+        }
         //Some preferences cause rebuild of the keyboard, hence changing the listeners list
-        final LinkedList<OnSharedPreferenceChangeListener> disconnectedList = new LinkedList<>(mPreferencesChangedListeners);
+        final List<OnSharedPreferenceChangeListener> disconnectedList = new ArrayList<>(mPreferencesChangedListeners);
         for (OnSharedPreferenceChangeListener listener : disconnectedList) {
             //before notifying, we'll ensure that the listener is still interested in the callback
             if (mPreferencesChangedListeners.contains(listener)) {
@@ -666,6 +667,11 @@ public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener 
                 return 500;
             }
         }
+    }
+
+    @Override
+    public boolean isEnableStateForRowMode(@Keyboard.KeyboardRowModeId int modeId) {
+        return mEnableStateForRowModes[modeId - 2];
     }
 
     @Override
@@ -768,11 +774,6 @@ public class AskPrefsImpl implements AskPrefs, OnSharedPreferenceChangeListener 
     @Override
     public boolean hideSoftKeyboardWhenPhysicalKeyPressed() {
         return mHideSoftKeyboardWhenPhysicalKeyPressed;
-    }
-
-    @Override
-    public boolean supportPasswordKeyboardRowMode() {
-        return mSupportPasswordKeyboardMode;
     }
 
     @Override

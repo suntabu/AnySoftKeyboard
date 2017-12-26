@@ -17,8 +17,8 @@
 package com.anysoftkeyboard;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -95,6 +95,7 @@ import com.menny.android.anysoftkeyboard.R;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.menny.android.anysoftkeyboard.AnyApplication.getKeyboardThemeFactory;
@@ -407,19 +408,14 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
                         mPredictionOn = true;
                 }
 
-                if (mAskPrefs.getInsertSpaceAfterCandidatePick()) {
-                    switch (variation) {
-                        case EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS:
-                        case EditorInfo.TYPE_TEXT_VARIATION_URI:
-                        case EditorInfo.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS:
-                            mAutoSpace = false;
-                            break;
-                        default:
-                            mAutoSpace = true;
-                    }
-                } else {
-                    // some users don't want auto-space
-                    mAutoSpace = false;
+                switch (variation) {
+                    case EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS:
+                    case EditorInfo.TYPE_TEXT_VARIATION_URI:
+                    case EditorInfo.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS:
+                        mAutoSpace = false;
+                        break;
+                    default:
+                        mAutoSpace = mAskPrefs.getInsertSpaceAfterCandidatePick();
                 }
 
                 final int textFlag = attribute.inputType & EditorInfo.TYPE_MASK_FLAGS;
@@ -453,7 +449,7 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
                 Logger.d(TAG, "Setting INPUT_MODE_TEXT as keyboard due to a default input.");
                 // No class. Probably a console window, or no GUI input connection
                 mPredictionOn = false;
-                mAutoSpace = true;
+                mAutoSpace = mAskPrefs.getInsertSpaceAfterCandidatePick();
                 getKeyboardSwitcher().setKeyboardMode(KeyboardSwitcher.INPUT_MODE_TEXT, attribute, restarting);
         }
 
@@ -798,13 +794,10 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
 
         mCandidateCloseText.setTextColor(closeTextColor);
         mCandidateCloseText.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizePixel);
-        mCandidateCloseText.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mKeyboardHandler.removeMessages(KeyboardUIStateHandler.MSG_REMOVE_CLOSE_SUGGESTIONS_HINT);
-                mCandidateCloseText.setVisibility(View.GONE);
-                abortCorrectionAndResetPredictionState(true);
-            }
+        mCandidateCloseText.setOnClickListener(v -> {
+            mKeyboardHandler.removeMessages(KeyboardUIStateHandler.MSG_REMOVE_CLOSE_SUGGESTIONS_HINT);
+            mCandidateCloseText.setVisibility(View.GONE);
+            abortCorrectionAndResetPredictionState(true);
         });
     }
 
@@ -814,8 +807,8 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
 
     @Override
     public void setSuggestions(List<? extends CharSequence> suggestions,
-                                boolean completions, boolean typedWordValid,
-                                boolean haveMinimalSuggestion) {
+                               boolean completions, boolean typedWordValid,
+                               boolean haveMinimalSuggestion) {
         if (mCandidateView != null) {
             mCandidateView.setSuggestions(suggestions,
                     typedWordValid, haveMinimalSuggestion && isAutoCorrect());
@@ -1107,18 +1100,6 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
         }
     }
 
-    private void removeTrailingSpace() {
-        final InputConnection ic = getCurrentInputConnection();
-        if (ic == null)
-            return;
-
-        CharSequence lastOne = ic.getTextBeforeCursor(1, 0);
-        if (lastOne != null && lastOne.length() == 1
-                && lastOne.charAt(0) == KeyCodes.SPACE) {
-            ic.deleteSurroundingText(1, 0);
-        }
-    }
-
     public boolean addWordToDictionary(String word) {
         boolean added = mSuggest.addWordToUserDictionary(word);
         if (added && mCandidateView != null)
@@ -1364,6 +1345,8 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
             case KeyCodes.CLIPBOARD_SELECT_ALL:
             case KeyCodes.CLIPBOARD_PASTE_POPUP:
             case KeyCodes.CLIPBOARD_SELECT:
+            case KeyCodes.UNDO:
+            case KeyCodes.REDO:
                 handleClipboardOperation(key, primaryCode, ic);
                 //not allowing undo on-text in clipboard paste operations.
                 if (primaryCode == KeyCodes.CLIPBOARD_PASTE) mCommittedWord = "";
@@ -1452,6 +1435,7 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
 
     @Override
     public void onKey(int primaryCode, Key key, int multiTapIndex, int[] nearByKeyCodes, boolean fromUI) {
+        super.onKey(primaryCode, key, multiTapIndex, nearByKeyCodes, fromUI);
         if (primaryCode > 0)
             onNonFunctionKey(primaryCode, key, multiTapIndex, nearByKeyCodes, fromUI);
         else
@@ -1686,9 +1670,10 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
 
     private void handleDeleteLastCharacter(boolean forMultiTap) {
         InputConnection ic = getCurrentInputConnection();
+        final boolean isPredicting = TextEntryState.isPredicting();
+        final TextEntryState.State newState = TextEntryState.backspace();
 
-        boolean deleteChar = false;
-        if (TextEntryState.isPredicting()) {
+        if (isPredicting) {
             final boolean wordManipulation = mWord.length() > 0 && mWord.cursorPosition() > 0;
             if (wordManipulation) {
                 mWord.deleteLast();
@@ -1715,14 +1700,9 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
             } else {
                 ic.deleteSurroundingText(1, 0);
             }
-        } else {
-            deleteChar = true;
-        }
-
-        TextEntryState.backspace();
-        if (TextEntryState.getState() == TextEntryState.State.UNDO_COMMIT) {
+        } else if (newState == TextEntryState.State.UNDO_COMMIT) {
             revertLastWord();
-        } else if (deleteChar) {
+        } else {
             //just making sure that
             if (mCandidateView != null) mCandidateView.dismissAddToDictionaryHint();
 
@@ -1851,7 +1831,9 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
         }
         mExpectingSelectionUpdateBy = SystemClock.uptimeMillis() + MAX_TIME_TO_EXPECT_SELECTION_UPDATE;
         //will not show next-word suggestion in case of a new line or if the separator is a sentence separator.
-        boolean isEndOfSentence = (primaryCode == KeyCodes.ENTER || mSentenceSeparators.get(primaryCode));
+        boolean newLine = primaryCode == KeyCodes.ENTER;
+        boolean isEndOfSentence = (newLine || mSentenceSeparators.get(primaryCode));
+        boolean isSpace = primaryCode == KeyCodes.SPACE;
 
         // Should dismiss the "Touch again to save" message when handling
         // separator
@@ -1870,25 +1852,20 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
         final boolean separatorInsideWord = (mWord.cursorPosition() < mWord.length());
         if (TextEntryState.isPredicting() && !separatorInsideWord) {
             //ACTION does not invoke default picking. See https://github.com/AnySoftKeyboard/AnySoftKeyboard/issues/198
-            pickDefaultSuggestion(isAutoCorrect() && primaryCode != KeyCodes.ENTER);
+            pickDefaultSuggestion(isAutoCorrect() && !newLine);
             // Picked the suggestion by a space/punctuation character: we will treat it
             // as "added an auto space".
-            mJustAddedAutoSpace = true;
+            mJustAddedAutoSpace = !newLine;
         } else if (separatorInsideWord) {
             // when putting a separator in the middle of a word, there is no
             // need to do correction, or keep knowledge
             abortCorrectionAndResetPredictionState(false);
         }
 
-        if (mJustAddedAutoSpace && primaryCode == KeyCodes.ENTER) {
-            removeTrailingSpace();
-            mJustAddedAutoSpace = false;
-        }
-
         boolean handledOutputToInputConnection = false;
 
         if (ic != null) {
-            if (primaryCode == KeyCodes.SPACE) {
+            if (isSpace) {
                 if (mAskPrefs.isDoubleSpaceChangesToPeriod()) {
                     if ((SystemClock.uptimeMillis() - mLastSpaceTimeStamp) < ((long) mAskPrefs.getMultiTapTimeout())) {
                         //current text in the input-box should be something like "word "
@@ -1902,15 +1879,14 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
                     }
                 }
             } else if (mJustAddedAutoSpace && mLastSpaceTimeStamp != NEVER_TIME_STAMP/*meaning last key was SPACE*/ &&
-                    mAskPrefs.shouldSwapPunctuationAndSpace() &&
-                    primaryCode != KeyCodes.ENTER &&
+                    (mAskPrefs.shouldSwapPunctuationAndSpace() || newLine) &&
                     isSentenceSeparator(primaryCode)) {
                 //current text in the input-box should be something like "word "
                 //the user pressed a punctuation (say ","). So we want to change the text in the input-box
                 //into "word "->"word, "
                 ic.deleteSurroundingText(1, 0);
-                ic.commitText(((char) primaryCode) + " ", 1);
-                mJustAddedAutoSpace = true;
+                ic.commitText(((char) primaryCode) + (newLine? "" : " "), 1);
+                mJustAddedAutoSpace = !newLine;
                 handledOutputToInputConnection = true;
             }
         }
@@ -2046,7 +2022,9 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
         return false;
     }
 
+    @Override
     public void pickSuggestionManually(int index, CharSequence suggestion) {
+        super.pickSuggestionManually(index, suggestion);
         final String typedWord = mWord.getTypedWord().toString();
 
         if (mWord.isAtTagsSearchState()) {
@@ -2122,23 +2100,14 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
         }
     }
 
-    /**
-     * Commits the chosen word to the text field and saves it for later
-     * retrieval.
-     *
-     * @param wordToCommit the suggestion picked by the user to be committed to the text
-     *                     field
-     * @param correcting   this is a correction commit
-     */
     @Override
     protected void commitWordToInput(@NonNull CharSequence wordToCommit, boolean correcting) {
+        super.commitWordToInput(wordToCommit, correcting);
         mWord.setPreferredWord(wordToCommit);
         InputConnection ic = getCurrentInputConnection();
         if (ic != null) {
             if (correcting) {
                 AnyApplication.getDeviceSpecific().commitCorrectionToInputConnection(ic, mGlobalCursorPosition - mWord.getTypedWord().length(), mWord.getTypedWord(), mWord.getPreferredWord());
-                // and drawing pop-out text
-                getInputView().popTextOutOfKey(mWord.getPreferredWord());
             } else {
                 ic.commitText(wordToCommit, 1);
             }
@@ -2186,7 +2155,7 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
             if (mJustAutoAddedWord) {
                 removeFromUserDictionary(typedWord.toString());
             }
-            getInputView().revertPopTextOutOfKey();
+            revertLastPopText();
         } else {
             sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL);
         }
@@ -2422,6 +2391,8 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
             final AnyKeyboard currentAlphabetKeyboard = getCurrentAlphabetKeyboard();
             if (currentAlphabetKeyboard != null && isInAlphabetKeyboardMode()) {
                 fillSeparatorsSparseArray(mSentenceSeparators, currentAlphabetKeyboard.getSentenceSeparators());
+                //ensure NEW-LINE is there
+                mSentenceSeparators.put(KeyCodes.ENTER, true);
 
                 List<DictionaryAddOnAndBuilder> buildersForKeyboard = AnyApplication.getExternalDictionaryFactory(this).getBuildersForKeyboard(currentAlphabetKeyboard);
 
@@ -2439,14 +2410,12 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
     }
 
     private void launchDictionaryOverriding() {
-        final List<DictionaryAddOnAndBuilder> buildersForKeyboard = AnyApplication.getExternalDictionaryFactory(this).getBuildersForKeyboard(getCurrentAlphabetKeyboard());
-        final ArrayList<CharSequence> dictionariesNamesForToast = new ArrayList<>();
-        final String SELECTED = "\u2714 ";
-        final String NOT_SELECTED = "- ";
-
-        // going over all installed dictionaries
+        final List<DictionaryAddOnAndBuilder> buildersForKeyboard =
+                AnyApplication.getExternalDictionaryFactory(this).getBuildersForKeyboard(getCurrentAlphabetKeyboard());
         final List<DictionaryAddOnAndBuilder> allBuilders = AnyApplication.getExternalDictionaryFactory(this).getAllAddOns();
+
         final CharSequence[] items = new CharSequence[allBuilders.size()];
+        final boolean[] checked = new boolean[items.length];
 
         for (int dictionaryIndex = 0; dictionaryIndex < allBuilders.size(); dictionaryIndex++) {
             DictionaryAddOnAndBuilder dictionaryBuilder = allBuilders.get(dictionaryIndex);
@@ -2454,38 +2423,34 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
             if (!TextUtils.isEmpty(dictionaryBuilder.getDescription())) {
                 description += " (" + dictionaryBuilder.getDescription() + ")";
             }
-
-            dictionariesNamesForToast.add(description);
-            if (buildersForKeyboard.contains(dictionaryBuilder))
-                description = SELECTED + description;
-            else
-                description = NOT_SELECTED + description;
-
             items[dictionaryIndex] = description;
+            checked[dictionaryIndex] = buildersForKeyboard.contains(dictionaryBuilder);
         }
 
-        showOptionsDialogWithData(getString(R.string.override_dictionary_title, getCurrentAlphabetKeyboard().getKeyboardName()), R.drawable.ic_settings_language,
-                items, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface di, int position) {
-                        di.dismiss();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setIcon(R.drawable.ic_settings_language);
+        builder.setTitle(getString(R.string.override_dictionary_title, getCurrentAlphabetKeyboard().getKeyboardName()));
 
-                        final DictionaryAddOnAndBuilder clickedBuilder = allBuilders.get(position);
+        builder.setMultiChoiceItems(items, checked, (dialogInterface, i, b) -> checked[i] = b);
 
-                        //re-building builds-for-keyboard list
-                        List<DictionaryAddOnAndBuilder> newBuildersForKeyboard = new ArrayList<>(buildersForKeyboard);
-                        if (buildersForKeyboard.contains(clickedBuilder)) {
-                            newBuildersForKeyboard.remove(clickedBuilder);
-                            showToastMessage(R.string.override_disabled, true);
-                        } else {
-                            newBuildersForKeyboard.add(clickedBuilder);
-                            showToastMessage(getString(R.string.override_enabled, dictionariesNamesForToast.get(position)), true);
-                        }
+        builder.setNegativeButton(android.R.string.cancel, (di, position) -> di.cancel());
+        builder.setPositiveButton(R.string.label_done_key, (di, position) -> {
+            List<DictionaryAddOnAndBuilder> newBuildersForKeyboard = new ArrayList<>(buildersForKeyboard.size());
+            for (int itemIndex = 0; itemIndex < allBuilders.size(); itemIndex++) {
+                if (checked[itemIndex]) {
+                    newBuildersForKeyboard.add(allBuilders.get(itemIndex));
+                }
+            }
 
-                        AnyApplication.getExternalDictionaryFactory(AnySoftKeyboard.this).setBuildersForKeyboard(getCurrentAlphabetKeyboard(), newBuildersForKeyboard);
-                        //applying override will be done in the prefs-changed callback.
-                    }
-                });
+            AnyApplication.getExternalDictionaryFactory(AnySoftKeyboard.this).setBuildersForKeyboard(getCurrentAlphabetKeyboard(), newBuildersForKeyboard);
+
+            di.dismiss();
+        });
+        builder.setNeutralButton(R.string.clear_all_dictionary_override, (dialogInterface, i) ->
+                AnyApplication.getExternalDictionaryFactory(AnySoftKeyboard.this)
+                        .setBuildersForKeyboard(getCurrentAlphabetKeyboard(), Collections.emptyList()));
+
+        showNewOptionDialog(builder.create());
     }
 
     private void showOptionsMenu() {
@@ -2495,27 +2460,24 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
                         getText(R.string.override_dictionary),
                         getText(R.string.change_ime),
                         getString(R.string.switch_incognito_template, getText(R.string.switch_incognito))},
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface di, int position) {
-                        switch (position) {
-                            case 0:
-                                launchSettings();
-                                break;
-                            case 1:
-                                launchDictionaryOverriding();
-                                break;
-                            case 2:
-                                ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).showInputMethodPicker();
-                                break;
-                            case 3:
-                                mSuggest.setIncognitoMode(!mSuggest.isIncognitoMode());
-                                getQuickKeyHistoryRecords().setIncognitoMode(mSuggest.isIncognitoMode());
-                                setupInputViewWatermark();
-                                break;
-                            default:
-                                throw new IllegalArgumentException("Position "+position+" is not covered by the ASK settings dialog.");
-                        }
+                (di, position) -> {
+                    switch (position) {
+                        case 0:
+                            launchSettings();
+                            break;
+                        case 1:
+                            launchDictionaryOverriding();
+                            break;
+                        case 2:
+                            ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).showInputMethodPicker();
+                            break;
+                        case 3:
+                            mSuggest.setIncognitoMode(!mSuggest.isIncognitoMode());
+                            getQuickKeyHistoryRecords().setIncognitoMode(mSuggest.isIncognitoMode());
+                            setupInputViewWatermark();
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Position " + position + " is not covered by the ASK settings dialog.");
                     }
                 }
         );
@@ -2581,8 +2543,7 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardWithGestureTyping i
                         key.equals(getString(R.string.settings_key_multitap_timeout)) ||
                         key.equals(getString(R.string.settings_key_always_hide_language_key)) ||
                         key.equals(getString(R.string.settings_key_default_split_state_portrait)) ||
-                        key.equals(getString(R.string.settings_key_default_split_state_landscape)) ||
-                        key.equals(getString(R.string.settings_key_support_password_keyboard_type_state))) {
+                        key.equals(getString(R.string.settings_key_default_split_state_landscape))) {
             //this will recreate the keyboard view AND flush the keyboards cache.
             resetKeyboardView(true);
         } else if (

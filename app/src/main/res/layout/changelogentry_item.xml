@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2015 Menny Even Danan
+<?xml version="1.0" encoding="utf-8"?><!-- Copyright (C) 2015 Menny Even Danan
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -15,7 +14,8 @@
 -->
 
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
-          android:layout_height="wrap_content"
-          android:layout_width="match_parent"
-          android:autoLink="web"
-          style="@style/Ask.Text.Normal"/>
+    android:id="@+id/chang_log_item"
+    style="@style/Ask.Text.Normal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:autoLink="web" />

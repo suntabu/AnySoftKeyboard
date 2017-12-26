@@ -254,9 +254,11 @@ class PointerTracker {
                     mKeyCodesInPathLength = 1;
                 }
 
-                mListener.onPress(codeAtIndex);
-                //also notifying about first down
-                mListener.onFirstDownKey(codeAtIndex);
+                if (codeAtIndex != 0) {
+                    mListener.onPress(codeAtIndex);
+                    //also notifying about first down
+                    mListener.onFirstDownKey(codeAtIndex);
+                }
                 // This onPress call may have changed keyboard layout. Those cases are detected at
                 // {@link #setKeyboard}. In those cases, we should update keyIndex according to the
                 // new keyboard layout.
@@ -431,10 +433,17 @@ class PointerTracker {
 
     private void startLongPressTimer(int keyIndex) {
         //in gesture typing we do not do long-pressing.
-        if (isInGestureTyping())
+        if (isInGestureTyping()) {
             mHandler.cancelLongPressTimer();
-        else
-            mHandler.startLongPressTimer(mLongPressKeyTimeout, keyIndex, this);
+        } else {
+            Key key = mKeys[keyIndex];
+            final int delay = shouldLongPressQuickly(key) ? 1 : mLongPressKeyTimeout;
+            mHandler.startLongPressTimer(delay, keyIndex, this);
+        }
+    }
+
+    private boolean shouldLongPressQuickly(Key key) {
+        return key.getCodesCount() == 0 && key.popupResId != 0 && TextUtils.isEmpty(key.text);
     }
 
     private void detectAndSendKey(int index, int x, int y, long eventTime) {

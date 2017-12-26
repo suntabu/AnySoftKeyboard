@@ -27,6 +27,34 @@
         <item>50</item>
     </string-array>
 
+    <string-array name="pop_text_types">
+        <item>@string/pop_text_type_never</item>
+        <item>@string/pop_text_type_on_correction</item>
+        <item>@string/pop_text_type_on_word</item>
+        <item>@string/pop_text_type_any_key</item>
+    </string-array>
+
+    <string-array name="pop_text_types_values">
+        <item>never</item>
+        <item>on_correction</item>
+        <item>on_word</item>
+        <item>any_key</item>
+    </string-array>
+
+    <string-array name="settings_key_theme_case_type_override_names">
+        <item>@string/theme_case_type_override_theme</item>
+        <item>@string/theme_case_type_override_os</item>
+        <item>@string/theme_case_type_override_lower</item>
+        <item>@string/theme_case_type_override_upper</item>
+    </string-array>
+
+    <string-array name="settings_key_theme_case_type_override_values">
+        <item>theme</item>
+        <item>auto</item>
+        <item>lower</item>
+        <item>upper</item>
+    </string-array>
+
     <string-array name="swipe_action_types_values">
         <item>@string/swipe_action_value_none</item>
         <item>@string/swipe_action_value_next_alphabet</item>
@@ -73,5 +101,12 @@
         <item>@string/swipe_action_name_compact_layout_to_right</item>
         <item>@string/swipe_action_name_compact_layout_to_left</item>
         <item>@string/swipe_action_name_utility_keyboard</item>
+    </string-array>
+
+    <string-array name="all_input_field_modes">
+        <item>@string/input_field_type_im</item>
+        <item>@string/input_field_type_url</item>
+        <item>@string/input_field_type_email</item>
+        <item>@string/input_field_type_password</item>
     </string-array>
 </resources>

@@ -32,6 +32,7 @@ import android.view.inputmethod.EditorInfo;
 import com.anysoftkeyboard.AnySoftKeyboard;
 import com.anysoftkeyboard.addons.AddOn;
 import com.anysoftkeyboard.api.KeyCodes;
+import com.anysoftkeyboard.dictionaries.BTreeDictionary;
 import com.anysoftkeyboard.keyboardextensions.KeyboardExtension;
 import com.anysoftkeyboard.keyboards.views.KeyDrawableStateProvider;
 import com.anysoftkeyboard.utils.Logger;
@@ -66,11 +67,9 @@ public abstract class AnyKeyboard extends Keyboard {
     private boolean mRightToLeftLayout = false;// the "super" ctor will create
     private boolean mTopRowWasCreated;
     private boolean mBottomRowWasCreated;
-    // public Key langSwitch;
+
     private int mGenericRowsHeight = 0;
-    // keys, and we'll set the
-    // correct value there.
-    private int mTopRowKeysCount = 0;
+
     // max(generic row widths)
     private int mMaxGenericRowsWidth = 0;
     private KeyboardCondenser mKeyboardCondenser;
@@ -97,8 +96,6 @@ public abstract class AnyKeyboard extends Keyboard {
 
         loadKeyboard(keyboardDimens, topRowPlugin, bottomRowPlugin);
     }
-
-    // private int mKeyboardActionType = EditorInfo.IME_ACTION_NONE;
 
     public void loadKeyboard(final KeyboardDimens keyboardDimens, @NonNull KeyboardExtension topRowPlugin, @NonNull KeyboardExtension bottomRowPlugin) {
         super.loadKeyboard(keyboardDimens);
@@ -289,7 +286,6 @@ public abstract class AnyKeyboard extends Keyboard {
         final int additionalPixels = (md.totalHeight + rowVerticalGap);
         mGenericRowsHeight += additionalPixels;
         if (md.isTopRow) {
-            mTopRowKeysCount += md.keysCount;
             List<Key> keys = getKeys();
             for (int keyIndex = md.keysCount; keyIndex < keys.size(); keyIndex++) {
                 final Key key = keys.get(keyIndex);
@@ -474,11 +470,11 @@ public abstract class AnyKeyboard extends Keyboard {
     }
 
     public boolean isStartOfWordLetter(char keyValue) {
-        return Character.isLetter(keyValue)/* || (keyValue == '\'') */;
+        return Character.isLetter(keyValue);
     }
 
     public boolean isInnerWordLetter(char keyValue) {
-        return Character.isLetter(keyValue) || (keyValue == '\'');
+        return Character.isLetter(keyValue) || (keyValue == BTreeDictionary.QUOTE || keyValue == BTreeDictionary.CURLY_QUOTE);
     }
 
     public abstract char[] getSentenceSeparators();
@@ -749,7 +745,7 @@ public abstract class AnyKeyboard extends Keyboard {
 
         @Override
         public int getCodeAtIndex(int index, boolean isShifted) {
-            return isShifted ? mShiftedCodes[index] : mCodes[index];
+            return mCodes.length == 0 ? 0: isShifted ? mShiftedCodes[index] : mCodes[index];
         }
 
         public void enable() {

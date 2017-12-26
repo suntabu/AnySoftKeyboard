@@ -28,7 +28,6 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.view.MotionEventCompat;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -44,7 +43,6 @@ import com.anysoftkeyboard.keyboardextensions.KeyboardExtension;
 import com.anysoftkeyboard.keyboards.AnyKeyboard;
 import com.anysoftkeyboard.keyboards.AnyKeyboard.AnyKey;
 import com.anysoftkeyboard.keyboards.ExternalAnyKeyboard;
-import com.anysoftkeyboard.keyboards.GenericKeyboard;
 import com.anysoftkeyboard.keyboards.Keyboard;
 import com.anysoftkeyboard.keyboards.Keyboard.Key;
 import com.anysoftkeyboard.keyboards.Keyboard.Row;
@@ -53,11 +51,10 @@ import com.anysoftkeyboard.utils.Logger;
 import com.menny.android.anysoftkeyboard.AnyApplication;
 import com.menny.android.anysoftkeyboard.R;
 
-public class AnyKeyboardView extends AnyKeyboardViewWithMiniKeyboard implements InputViewBinder {
+public class AnyKeyboardView extends AnyKeyboardViewWithExtraDraw implements InputViewBinder {
 
     private static final int DELAY_BEFORE_POPPING_UP_EXTENSION_KBD = 35;// milliseconds
     private static final String TAG = "AnyKeyboardView";
-    private static final int TEXT_POP_OUT_ANIMATION_DURATION = 1200;
     public static final int DEFAULT_EXTENSION_POINT = -5;
 
     private boolean mExtensionVisible = false;
@@ -151,13 +148,7 @@ public class AnyKeyboardView extends AnyKeyboardViewWithMiniKeyboard implements 
 
         mUtilityKey = null;
         super.setKeyboard(newKeyboard, verticalCorrection);
-        if (newKeyboard instanceof GenericKeyboard && ((GenericKeyboard) newKeyboard).disableKeyPreviews()) {
-            // Phone keyboard never shows popup preview (except language
-            // switch).
-            setPreviewEnabled(false);
-        } else {
-            setPreviewEnabled(AnyApplication.getConfig().getShowKeyPreview());
-        }
+        setPreviewEnabled(AnyApplication.getConfig().getShowKeyPreview());
         // TODO: For now! should be a calculated value
         // lots of key : true
         // some keys: false
@@ -372,40 +363,6 @@ public class AnyKeyboardView extends AnyKeyboardViewWithMiniKeyboard implements 
             startAnimation(mInAnimation);
             mInAnimation = null;
         }
-        // text pop out animation
-        if (mPopOutText != null && mAnimationLevel != AnimationsLevel.None) {
-            final int maxVerticalTravel = getHeight() / 2;
-            final long currentAnimationTime = SystemClock.elapsedRealtime() - mPopOutTime;
-            if (currentAnimationTime > TEXT_POP_OUT_ANIMATION_DURATION) {
-                mPopOutText = null;
-            } else {
-                final float popOutPositionProgress = ((float) currentAnimationTime) / ((float) TEXT_POP_OUT_ANIMATION_DURATION);
-                final float animationProgress = mPopOutTextReverting ? 1f - popOutPositionProgress : popOutPositionProgress;
-                final float animationInterpolatorPosition = getPopOutAnimationInterpolator(false, animationProgress);
-                final int y = mPopOutStartPoint.y - (int) (maxVerticalTravel * animationInterpolatorPosition);
-                final int x = mPopOutStartPoint.x;
-                final int alpha = mPopOutTextReverting ?
-                        (int) (255 * animationProgress)
-                        : 255 - (int) (255 * animationProgress);
-                // drawing
-                setPaintToKeyText(mPaint);
-                // will disappear over time
-                mPaint.setAlpha(alpha);
-                mPaint.setShadowLayer(5, 0, 0, Color.BLACK);
-                // will grow over time
-                mPaint.setTextSize(
-                        mPaint.getTextSize() * (1.0f + animationInterpolatorPosition));
-                canvas.translate(x, y);
-                canvas.drawText(mPopOutText, 0, mPopOutText.length(), 0, 0, mPaint);
-                canvas.translate(-x, -y);
-                //we're doing reverting twice much faster
-                if (mPopOutTextReverting) {
-                    mPopOutTime = mPopOutTime - (int) (60 * popOutPositionProgress);
-                }
-                // next frame
-                postInvalidateDelayed(1000 / 60);// doing 60 frames per second;
-            }
-        }
 
         if (mGestureTypingPathShouldBeDrawn) {
             mGestureDrawingHelper.draw(canvas);
@@ -423,53 +380,6 @@ public class AnyKeyboardView extends AnyKeyboardViewWithMiniKeyboard implements 
             canvas.drawText(mWatermarkText, 0, mWatermarkText.length(), 0, 0, mWatermarkTextPaint);
             canvas.translate(-x, -y);
         }
-    }
-
-    /*
-     * Taken from Android's DecelerateInterpolator.java and AccelerateInterpolator.java
-     */
-    private static float getPopOutAnimationInterpolator(final boolean isAccelerating, final float input) {
-        return isAccelerating ?
-                input * input :
-                (1.0f - (1.0f - input) * (1.0f - input));
-    }
-
-    private boolean mPopOutTextReverting = false;
-    private CharSequence mPopOutText = null;
-    private long mPopOutTime = 0;
-    private final Point mPopOutStartPoint = new Point();
-
-    @Override
-    public void revertPopTextOutOfKey() {
-        if (TextUtils.isEmpty(mPopOutText)) return;
-
-        if (!mPopOutTextReverting) {
-            mPopOutTextReverting = true;
-            //re-setting the mPopOutTime to reflect the time required to revert back
-            final long currentAnimationTime = SystemClock.elapsedRealtime() - mPopOutTime;
-            final long animationTimeLeft = TEXT_POP_OUT_ANIMATION_DURATION - currentAnimationTime;
-            mPopOutTime = SystemClock.elapsedRealtime() - animationTimeLeft;
-        }
-    }
-
-    @Override
-    public void popTextOutOfKey(CharSequence text) {
-        if (TextUtils.isEmpty(text)) {
-            Logger.w(TAG, "Call for popTextOutOfKey with missing text argument!");
-            return;
-        }
-        if (!AnyApplication.getConfig().workaround_alwaysUseDrawText())
-            return;// not doing it with StaticLayout
-
-        mPopOutTextReverting = false;
-        //performing "toString" so we'll have a separate copy of the CharSequence,
-        // and not the original object which I fear is a reference copy (hence may be changed).
-        mPopOutText = text.toString();
-        mPopOutTime = SystemClock.elapsedRealtime();
-        mPopOutStartPoint.x = mFirstTouchPoint.x;
-        mPopOutStartPoint.y = mFirstTouchPoint.y;
-        // it is ok to wait for the next loop.
-        postInvalidate();
     }
 
     @Override

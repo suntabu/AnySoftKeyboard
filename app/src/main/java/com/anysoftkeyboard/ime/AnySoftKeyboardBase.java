@@ -16,7 +16,6 @@
 
 package com.anysoftkeyboard.ime;
 
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -69,6 +68,7 @@ public abstract class AnySoftKeyboardBase
     }
 
     @Override
+    @CallSuper
     public void onCreate() {
         Logger.i(TAG, "****** AnySoftKeyboard v%s (%d) service started.", BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
         super.onCreate();
@@ -124,31 +124,9 @@ public abstract class AnySoftKeyboardBase
         Toast.makeText(this.getApplication(), text, duration).show();
     }
 
-    protected void showOptionsDialogWithData(CharSequence title, @DrawableRes int iconRedId,
-                                             final CharSequence[] entries, final DialogInterface.OnClickListener listener) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(true);
-        builder.setIcon(iconRedId);
-        builder.setTitle(title);
-        builder.setNegativeButton(android.R.string.cancel, null);
-
-        builder.setItems(entries, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface di, int position) {
-                di.dismiss();
-                if (di == mOptionsDialog) mOptionsDialog = null;
-
-                if ((position < 0) || (position >= entries.length)) {
-                    Logger.d(TAG, "Selection dialog popup canceled");
-                } else {
-                    Logger.d(TAG, "User selected '%s' at position %d", entries[position], position);
-                    listener.onClick(di, position);
-                }
-            }
-        });
-
+    protected void showNewOptionDialog(@NonNull AlertDialog newDialog) {
         if (mOptionsDialog != null && mOptionsDialog.isShowing()) mOptionsDialog.dismiss();
-        mOptionsDialog = builder.create();
+        mOptionsDialog = newDialog;
         Window window = mOptionsDialog.getWindow();
         WindowManager.LayoutParams lp = window.getAttributes();
         lp.token = ((View) getInputView()).getWindowToken();
@@ -160,19 +138,38 @@ public abstract class AnySoftKeyboardBase
         getInputView().closing();
     }
 
+    protected void showOptionsDialogWithData(CharSequence title, @DrawableRes int iconRedId,
+                                             final CharSequence[] entries, final DialogInterface.OnClickListener listener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(true);
+        builder.setIcon(iconRedId);
+        builder.setTitle(title);
+        builder.setNegativeButton(android.R.string.cancel, null);
+
+        builder.setItems(entries, (di, position) -> {
+            di.dismiss();
+            if (di == mOptionsDialog) mOptionsDialog = null;
+
+            if ((position < 0) || (position >= entries.length)) {
+                Logger.d(TAG, "Selection dialog popup canceled");
+            } else {
+                Logger.d(TAG, "User selected '%s' at position %d", entries[position], position);
+                listener.onClick(di, position);
+            }
+        });
+
+        showNewOptionDialog(builder.create());
+    }
+
     @Override
     public View onCreateInputView() {
         if (getInputView() != null) getInputView().onViewNotRequired();
         mInputView = null;
 
         GCUtils.getInstance().performOperationWithMemRetry(TAG,
-                new GCUtils.MemRelatedOperation() {
-                    @SuppressLint("InflateParams")
-                    @Override
-                    public void operation() {
-                        mInputViewContainer = createInputViewContainer();
-                        mInputViewContainer.setBackgroundResource(R.drawable.ask_wallpaper);
-                    }
+                () -> {
+                    mInputViewContainer = createInputViewContainer();
+                    mInputViewContainer.setBackgroundResource(R.drawable.ask_wallpaper);
                 });
         // resetting token users
         mOptionsDialog = null;
@@ -184,6 +181,16 @@ public abstract class AnySoftKeyboardBase
 
         return mInputViewContainer;
     }
+
+    /**
+     * Commits the chosen word to the text field and saves it for later
+     * retrieval.
+     *
+     * @param wordToCommit the suggestion picked by the user to be committed to the text
+     *                     field
+     * @param correcting   this is a correction commit
+     */
+    protected abstract void commitWordToInput(@NonNull CharSequence wordToCommit, boolean correcting);
 
     protected final void setupInputViewWatermark() {
         final String watermarkText;
@@ -245,6 +252,8 @@ public abstract class AnySoftKeyboardBase
     protected abstract boolean isAlphabet(int code);
 
     protected abstract boolean isSuggestionAffectingCharacter(int code);
+
+    public abstract void pickSuggestionManually(int index, CharSequence suggestion);
 
     @CallSuper
     protected void onLoadSettingsRequired(SharedPreferences sharedPreferences) {

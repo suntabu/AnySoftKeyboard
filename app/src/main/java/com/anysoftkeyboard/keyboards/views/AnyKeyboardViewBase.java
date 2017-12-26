@@ -35,9 +35,11 @@ import android.graphics.drawable.NinePatchDrawable;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.support.v4.util.ArrayMap;
 import android.support.v4.view.MotionEventCompat;
 import android.text.Layout.Alignment;
@@ -73,8 +75,8 @@ import com.menny.android.anysoftkeyboard.BuildConfig;
 import com.menny.android.anysoftkeyboard.R;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -104,8 +106,8 @@ public class AnyKeyboardViewBase extends View implements
     // Timing constants
     private final int mKeyRepeatInterval;
     /* keys icons */
-    private final SparseArray<DrawableBuilder> mKeysIconBuilders = new SparseArray<>(32);
-    private final SparseArray<Drawable> mKeysIcons = new SparseArray<>(32);
+    private final SparseArray<DrawableBuilder> mKeysIconBuilders = new SparseArray<>(64);
+    private final SparseArray<Drawable> mKeysIcons = new SparseArray<>(64);
     @NonNull
     private final PointerTracker.SharedPointerTrackersData mSharedPointerTrackersData = new PointerTracker.SharedPointerTrackersData();
     private final SparseArray<PointerTracker> mPointerTrackers = new SparseArray<>();
@@ -156,7 +158,6 @@ public class AnyKeyboardViewBase extends View implements
     private FontMetrics mHintTextFontMetrics;
     private int mHintLabelAlign;
     private int mHintLabelVAlign;
-    private String mHintOverflowLabel = null;
     private int mShadowColor;
     private int mShadowRadius;
     private int mShadowOffsetX;
@@ -174,6 +175,8 @@ public class AnyKeyboardViewBase extends View implements
 
     private Key mInvalidatedKey;
     private boolean mTouchesAreDisabledTillLastFingerIsUp = false;
+    private int mTextCaseForceOverrideType;
+    private int mTextCaseType;
 
     public AnyKeyboardViewBase(Context context, AttributeSet attrs) {
         this(context, attrs, R.style.PlainLightAnySoftKeyboard);
@@ -209,6 +212,8 @@ public class AnyKeyboardViewBase extends View implements
 
         mNextAlphabetKeyboardName = getResources().getString(R.string.change_lang_regular);
         mNextSymbolsKeyboardName = getResources().getString(R.string.change_symbols_regular);
+
+        updatePrefSettings(PreferenceManager.getDefaultSharedPreferences(context).getString(getResources().getString(R.string.settings_key_theme_case_type_override), "theme"));
     }
 
     protected static boolean isSpaceKey(final AnyKey key) {
@@ -575,8 +580,8 @@ public class AnyKeyboardViewBase extends View implements
             case R.attr.hintLabelAlign:
                 mHintLabelAlign = remoteTypedArray.getInt(remoteTypedArrayIndex, Gravity.RIGHT);
                 break;
-            case R.attr.hintOverflowLabel:
-                mHintOverflowLabel = remoteTypedArray.getString(remoteTypedArrayIndex);
+            case R.attr.keyTextCaseStyle:
+                mTextCaseType = remoteTypedArray.getInt(remoteTypedArrayIndex, 0);
                 break;
         }
         //CHECKSTYLE:ON: missingswitchdefault
@@ -661,6 +666,12 @@ public class AnyKeyboardViewBase extends View implements
                 break;
             case R.attr.iconKeyQuickText:
                 keyCode = KeyCodes.QUICK_TEXT;
+                break;
+            case R.attr.iconKeyUndo:
+                keyCode = KeyCodes.UNDO;
+                break;
+            case R.attr.iconKeyRedo:
+                keyCode = KeyCodes.REDO;
                 break;
             default:
                 keyCode = 0;
@@ -837,13 +848,36 @@ public class AnyKeyboardViewBase extends View implements
         mKeyDetector.setProximityCorrectionEnabled(enabled);
     }
 
-    private CharSequence adjustLabelToShiftState(AnyKey key) {
+    private boolean isShiftedAccordingToCaseType(boolean keyShiftState) {
+        switch (mTextCaseForceOverrideType) {
+            case -1:
+                switch (mTextCaseType) {
+                    case 0:
+                        return keyShiftState; //auto
+                    case 1:
+                        return false; //lowercase always
+                    case 2:
+                        return true; //uppercase always
+                    default:
+                        return keyShiftState;
+                }
+            case 1:
+                return false; //lowercase always
+            case 2:
+                return true; //uppercase always
+            default:
+                return keyShiftState;
+        }
+    }
+
+    @VisibleForTesting
+    CharSequence adjustLabelToShiftState(AnyKey key) {
         CharSequence label = key.label;
-        if (mKeyboard.isShifted()) {
+        if (isShiftedAccordingToCaseType(mKeyboard.isShifted())) {
             if (!TextUtils.isEmpty(key.shiftedKeyLabel)) {
                 return key.shiftedKeyLabel;
             } else if (label != null && label.length() == 1) {
-                label = Character.toString((char) key.getCodeAtIndex(0, mKeyDetector.isKeyShifted(key)));
+                label = Character.toString((char) key.getCodeAtIndex(0, isShiftedAccordingToCaseType(mKeyDetector.isKeyShifted(key))));
             }
             //remembering for next time
             if (key.isShiftCodesAlways()) key.shiftedKeyLabel = label;
@@ -889,6 +923,7 @@ public class AnyKeyboardViewBase extends View implements
     }
 
     @Override
+    @CallSuper
     public void onDraw(final Canvas canvas) {
         super.onDraw(canvas);
         mDrawOperation.setCanvas(canvas);
@@ -1095,7 +1130,7 @@ public class AnyKeyboardViewBase extends View implements
                         || (key.longPressCode != 0)) {
                     Align oldAlign = paint.getTextAlign();
 
-                    String hintText = null;
+                    String hintText = "";
 
                     if (key.hintLabel != null && key.hintLabel.length() > 0) {
                         hintText = key.hintLabel.toString();
@@ -1104,32 +1139,14 @@ public class AnyKeyboardViewBase extends View implements
                         // not put too many characters in the hint label...
                     } else if (key.longPressCode != 0) {
                         if (Character.isLetterOrDigit(key.longPressCode))
-                            hintText = Character
-                                    .toString((char) key.longPressCode);
+                            hintText = Character.toString((char) key.longPressCode);
                     } else if (key.popupCharacters != null) {
-                        final String hintString = key.popupCharacters
-                                .toString();
+                        final String hintString = key.popupCharacters.toString();
                         final int hintLength = hintString.length();
                         if (hintLength <= 3)
                             hintText = hintString;
-                    }
-
-                    // if hintText is still null, it means it didn't fit one of
-                    // the above
-                    // cases, so we should provide the hint using the default
-                    if (hintText == null) {
-                        if (mHintOverflowLabel != null)
-                            hintText = mHintOverflowLabel;
-                        else {
-                            // theme does not provide a defaultHintLabel
-                            // use ˙˙˙ if hints are above, ... if hints are
-                            // below
-                            // (to avoid being too close to main label/icon)
-                            if (hintVAlign == Gravity.TOP)
-                                hintText = "˙˙˙";
-                            else
-                                hintText = "...";
-                        }
+                        else
+                            hintText = hintString.substring(0, 3);
                     }
 
                     if (mKeyboard.isShifted())
@@ -1226,7 +1243,7 @@ public class AnyKeyboardViewBase extends View implements
         paint.setTypeface(Typeface.DEFAULT_BOLD);
     }
 
-    protected void setPaintToKeyText(final Paint paint) {
+    public void setPaintToKeyText(final Paint paint) {
         paint.setTextSize(mKeyTextSize);
         paint.setTypeface(mKeyTextStyle);
     }
@@ -1766,6 +1783,23 @@ public class AnyKeyboardViewBase extends View implements
         mKeyboard = null;
     }
 
+    private void updatePrefSettings(final String overrideValue) {
+        switch (overrideValue) {
+            case "auto":
+                mTextCaseForceOverrideType = 0;
+                break;
+            case "lower":
+                mTextCaseForceOverrideType = 1;
+                break;
+            case "upper":
+                mTextCaseForceOverrideType = 2;
+                break;
+            default:
+                mTextCaseForceOverrideType = -1;
+                break;
+        }
+    }
+
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Resources res = getResources();
@@ -1782,6 +1816,8 @@ public class AnyKeyboardViewBase extends View implements
                 || key.equals(res.getString(R.string.settings_key_tweak_animations_level))) {
             mKeyPreviewsManager.destroy();
             mKeyPreviewsManager = new KeyPreviewsManager(getContext(), this, mPreviewPopupTheme);
+        } else if (key.equals(res.getString(R.string.settings_key_theme_case_type_override))) {
+            updatePrefSettings(sharedPreferences.getString(key, "theme"));
         }
     }
 
@@ -1806,11 +1842,11 @@ public class AnyKeyboardViewBase extends View implements
             Key keyForLongPress = tracker.getKey(msg.arg1);
             switch (msg.what) {
                 case MSG_REPEAT_KEY:
-                        if (keyForLongPress != null && keyForLongPress instanceof AnyKey && ((AnyKey) keyForLongPress).longPressCode != 0) {
-                            keyboard.onLongPress(keyboard.getKeyboard().getKeyboardAddOn(), keyForLongPress, false, tracker);
-                        } else {
-                            tracker.repeatKey(msg.arg1);
-                        }
+                    if (keyForLongPress != null && keyForLongPress instanceof AnyKey && ((AnyKey) keyForLongPress).longPressCode != 0) {
+                        keyboard.onLongPress(keyboard.getKeyboard().getKeyboardAddOn(), keyForLongPress, false, tracker);
+                    } else {
+                        tracker.repeatKey(msg.arg1);
+                    }
                     startKeyRepeatTimer(keyboard.mKeyRepeatInterval, msg.arg1, tracker);
                     break;
                 case MSG_LONG_PRESS_KEY:
@@ -1856,14 +1892,14 @@ public class AnyKeyboardViewBase extends View implements
     }
 
     static class PointerQueue {
-        private LinkedList<PointerTracker> mQueue = new LinkedList<>();
+        private ArrayList<PointerTracker> mQueue = new ArrayList<>();
 
         public void add(PointerTracker tracker) {
             mQueue.add(tracker);
         }
 
         public int lastIndexOf(PointerTracker tracker) {
-            LinkedList<PointerTracker> queue = mQueue;
+            ArrayList<PointerTracker> queue = mQueue;
             for (int index = queue.size() - 1; index >= 0; index--) {
                 PointerTracker t = queue.get(index);
                 if (t == tracker)

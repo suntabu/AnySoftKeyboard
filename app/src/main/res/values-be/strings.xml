@@ -14,6 +14,7 @@
   <!-- links tab -->
   <string name="change_log_card_version_title_template">\u0020\u0020Апошнія змены для v<xliff:g id="name">%s</xliff:g>\u0020\u0020</string>
   <string name="change_log_entry_header_template_without_name">\u0020\u0020v<xliff:g id="code">%s</xliff:g>\u0020\u0020</string>
+  <string name="change_log_url">Яшчэ:\u0020<xliff:g id="url">%s</xliff:g></string>
   <!-- credits tab -->
   <!-- notifications -->
   <string name="ime_name_beta">AnySoftKeyboard BETA</string>
@@ -55,15 +56,8 @@
   <string name="change_ime">Змяніць метад уводу</string>
   <string name="override_dictionary">Перавызначыць слоўнік па змаўчанні</string>
   <!-- Dictionary override strings -->
-  <string name="override_dictionary_title">Перавызначыць 
-        <xliff:g id="word">%s</xliff:g>
-        слоўнік
-    </string>
+  <string name="override_dictionary_title">Перавызначыць\u0020<xliff:g id="word">%s</xliff:g>\u0020слоўнік</string>
   <!-- Dictionary override toast messages -->
-  <string name="override_disabled">Перавызначэнне скасавана</string>
-  <string name="override_enabled">Перавызначыць на
-        <xliff:g id="word">%s</xliff:g>
-    </string>
   <!-- settings - effects-->
   <string name="gesture_settings">Жэсты</string>
   <string name="effects_group">Эфекты</string>
@@ -79,6 +73,15 @@
     <item>Сярэдне</item>
     <item>Моцна</item>
   </string-array>
+  <string name="pop_text_type_dialog_title">Выберыце тып адлюстравання тэксту</string>
+  <string name="pop_text_type_never">Ніколі</string>
+  <string name="pop_text_type_on_correction">Падчас карэкцыі слова</string>
+  <string name="pop_text_type_on_word">Любое слова</string>
+  <string name="pop_text_type_any_key">Любая клавіша</string>
+  <string name="input_field_type_password">Поле ўводу пароля</string>
+  <string name="input_field_type_email">Поле ўводу эл. пошты</string>
+  <string name="input_field_type_url">Поле ўводу URL-адраса</string>
+  <string name="input_field_type_im">Поле ўводу паведамлення</string>
   <string name="sound_on">Гук падчас націску клавішаў</string>
   <string name="sound_on_summary">Гукавы эфект падчас націску клавішаў на праграмнай клавіятуры.</string>
   <string name="use_custom_sound_volume">Усталяваць уласныя гукавыя налады</string>
@@ -108,9 +111,6 @@
   <string name="backword_support">Выдаленне ўсяго слова</string>
   <string name="backword_support_on_summary">Націск клавішы звароту ў верхнім рэгістры выдаліць апошняе слова</string>
   <string name="backword_support_off_summary">Націск клавішы звароту ў верхнім рэгістры выдаліць апошні сімвал</string>
-  <string name="pref_support_password_keyboard_row_state">Паказаць звязаныя клавішы ў полі пароля</string>
-  <string name="pref_support_password_keyboard_row_state_on_summary">Дадатковы рад будзе адлюстраваны ў полі пароля.</string>
-  <string name="pref_support_password_keyboard_row_state_off_summary">Не выкарыстоўваць дадатковы рад у полі пароля.</string>
   <string name="swipe_tweak_group">Змяніць дзеянні жэста чыркання</string>
   <string name="swipe_up_action">Чырканне ўверх</string>
   <string name="swipe_up_action_summary">Вызначце дзеянне жэста чыркання ўверх. Бягучае дзеянне: %s</string>
@@ -228,6 +228,8 @@
   <string name="tweak_physical_keyboard_group">Налады апаратнай клавіятуры</string>
   <string name="tweak_ui_group">Налады графікі</string>
   <string name="tweak_ux_group">Налады паводзінаў</string>
+  <string name="supported_keyboard_row_modes_title">Уключаныя спецыялізаваныя рэжымы поля ўводу</string>
+  <string name="supported_keyboard_row_modes_summary">Для выкарыстання выберыце спецыялізаваныя радкі поля ўводу (такія як, паролі, спасылкі і г.д.).</string>
   <string name="tweak_dictionary_group">Налады слоўніка</string>
   <string name="settings_min_length_for_word_correction">Мінімальная даўжыня слова для выпраўлення</string>
   <string name="show_keyboard_name_text">Паказваць імя клавіятуры</string>
@@ -372,6 +374,7 @@
   <string name="extension_kbd_top_small_numbers">Лічбавыя клавішы</string>
   <string name="extension_kbd_top_numbers_alt">Альтэрнатыўныя лічбавыя клавішы</string>
   <string name="extension_kbd_top_nav">Навігацыйныя клавішы</string>
+  <string name="extension_kbd_top_numbers_simple">Просты, толькі лічбы</string>
   <string name="extension_kbd_bottom_regular_with_voice">Звычайны</string>
   <string name="extension_kbd_bottom_regular">Класічны (без мікрафона)</string>
   <string name="extension_kbd_bottom_iphone">Стыль iPhone (без мікрафона)</string>
@@ -379,6 +382,7 @@
   <string name="extension_kbd_bottom_alt">Альтэрнатыўны (без мікрафона)</string>
   <string name="extension_kbd_bottom_alt_with_mic">Альтэрнатыўны з мікрафонам</string>
   <string name="extension_kbd_bottom_old">Старамодная</string>
+  <string name="extension_kbd_bottom_simple">Просты</string>
   <string name="extension_kbd_bottom_ng">Новая генерацыя - тэставанне</string>
   <string name="extension_kbd_extension_numbers_symbols">Лічбы і сімвалы</string>
   <!-- Tutorials -->
@@ -582,4 +586,5 @@
   <string name="setup_wizard_welcome_start_action">Запуск усталявання…</string>
   <string name="setup_wizard_welcome_info_footnote">* Вядома, што AnySoftKeyboard не ўяўляе ніякай небяспекі. Вы можаце пераканацца ў гэтым зазірнуўшы ў зыходны код праграмы. Больш за тое, праграма не патрабуе <i>СЕЦІЎНЫХ</i> дазволаў, г. зн. што яна нікуды не адпраўляе даныя з вашай прылады.</string>
   <string name="setup_wizard_welcome_privacy_action">Пераход да палітыкі прыватнасці…</string>
+  <string name="clear_all_dictionary_override">Ачысціць перавызначэнні</string>
 </resources>

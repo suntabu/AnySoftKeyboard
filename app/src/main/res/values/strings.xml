@@ -17,6 +17,7 @@
     <!-- links tab -->
     <string name="change_log_card_version_title_template">\u0020\u0020Latest changes for v<xliff:g id="name">%s</xliff:g>\u0020\u0020</string>
     <string name="change_log_entry_header_template_without_name">\u0020\u0020v<xliff:g id="code">%s</xliff:g>\u0020\u0020</string>
+    <string name="change_log_url">More:\u0020<xliff:g id="url">%s</xliff:g></string>
     <!-- credits tab -->
     <!-- notifications -->
     <string name="ime_name_beta">AnySoftKeyboard BETA</string>
@@ -63,16 +64,11 @@
     <string name="change_ime">Change input method</string>
     <string name="override_dictionary">Override default dictionary</string>
     <!-- Dictionary override strings -->
-    <string name="override_dictionary_title">Override
-        <xliff:g id="word">%s</xliff:g>
-        dictionary
-    </string>
+    <string name="override_dictionary_title">Override\u0020<xliff:g id="word">%s</xliff:g>\u0020dictionary</string>
     
     <!-- Dictionary override toast messages -->
-    <string name="override_disabled">Override cleared</string>
-    <string name="override_enabled">Overriding to
-        <xliff:g id="word">%s</xliff:g>
-    </string>
+    
+    
 
     <!-- settings - effects-->
     <string name="gesture_settings">Gestures</string>
@@ -90,6 +86,19 @@
         <item>Strong</item>
     </string-array>
 
+    <string name="pop_text_type_title">Pop typed text from keys</string>
+    <string name="pop_text_type_summary">When to pop text out of pressed keys. Currently: %s</string>
+    <string name="pop_text_type_dialog_title">Select pop-text type</string>
+    <string name="pop_text_type_never">Never</string>
+    <string name="pop_text_type_on_correction">On word correction</string>
+    <string name="pop_text_type_on_word">On any word</string>
+    <string name="pop_text_type_any_key">On any key</string>
+
+    <string name="input_field_type_password">Password input field</string>
+    <string name="input_field_type_email">Email input field</string>
+    <string name="input_field_type_url">URL input field</string>
+    <string name="input_field_type_im">Messaging input field</string>
+
     <string name="sound_on">Sound on key-press</string>
     <string name="sound_on_summary">Sound effects on soft keyboard press.</string>
     <string name="use_custom_sound_volume">Set custom volume</string>
@@ -106,7 +115,7 @@
     <string name="persistent_layout_per_package_id_off_summary">Use the same layout for all Apps.</string>
     <string name="persistent_layout_per_package_id_on_summary">Automatically switch to the previous layout used in the App.</string>
 
-    <string name="one_shot_quick_text_popup">Auto close after key</string>
+    <string name="one_shot_quick_text_popup">Auto close after key-press</string>
     <string name="one_shot_quick_text_popup_on_summary">Close Quick-Text popup after pressing a key</string>
     <string name="one_shot_quick_text_popup_off_summary">Keep Quick-Text popup open until Close key is pressed</string>
     <string name="quick_text_tags_search">Suggest Emojis by tag typing</string>
@@ -124,9 +133,9 @@
     <string name="backword_support">Back-word support</string>
     <string name="backword_support_on_summary">Shifted Backspace will delete the last word</string>
     <string name="backword_support_off_summary">Shifted Backspace will delete the last character</string>
-    <string name="pref_support_password_keyboard_row_state">Show password-field related keys</string>
-    <string name="pref_support_password_keyboard_row_state_on_summary">Extra row will be shown when in a password-field.</string>
-    <string name="pref_support_password_keyboard_row_state_off_summary">No extra keys on password-field.</string>
+    
+    
+    
     <string name="swipe_tweak_group">Change swipe gesture actions</string>
     <string name="swipe_up_action">Swipe up</string>
     <string name="swipe_up_action_summary">Define the swipe up gesture action. Currently, %s</string>
@@ -262,6 +271,9 @@
     <string name="tweak_ui_group">Graphical tweaks</string>
     <string name="tweak_ux_group">Behavior tweaks</string>
 
+    <string name="supported_keyboard_row_modes_title">Enabled specialized input-field modes</string>
+    <string name="supported_keyboard_row_modes_summary">Pick specialized input-field (such as password, URL, etc.) rows to use.</string>
+
     <string name="tweak_dictionary_group">Dictionary tweaks</string>
     <string name="settings_min_length_for_word_correction">Minimum word length for correction</string>
 
@@ -345,8 +357,8 @@
     <string name="tweak_animations_level_types_some">Some</string>
     <string name="tweak_animations_level_types_none">None</string>
 
-    <string name="cycle_all_symbols_keyboards">Cycle over all symbols</string>
-    <string name="cycle_all_symbols_keyboards_on_summary">Symbols key will cycle over all symbols keyboards</string>
+    <string name="cycle_all_symbols_keyboards">Cycle through all symbols</string>
+    <string name="cycle_all_symbols_keyboards_on_summary">Symbols key will cycle through all symbols keyboards</string>
     <string name="cycle_all_symbols_keyboards_off_summary">Symbols key will only show main symbols keyboard</string>
 
     <string name="lang_key_shows_popup">Language switch by popup</string>
@@ -429,6 +441,7 @@
     <string name="extension_kbd_top_small_numbers">Numbers keys</string>
     <string name="extension_kbd_top_numbers_alt">Alternate number keys</string>
     <string name="extension_kbd_top_nav">Navigation keys</string>
+    <string name="extension_kbd_top_numbers_simple">Simple, numbers only</string>
 
     <string name="extension_kbd_bottom_regular_with_voice">Regular</string>
     <string name="extension_kbd_bottom_regular">Classic (no mic)</string>
@@ -437,6 +450,7 @@
     <string name="extension_kbd_bottom_alt">Alternate (no mic)</string>
     <string name="extension_kbd_bottom_alt_with_mic">Alternate with mic</string>
     <string name="extension_kbd_bottom_old">Old School</string>
+    <string name="extension_kbd_bottom_simple">Simple</string>
 
     <string name="extension_kbd_bottom_ng">New Generation - Testing</string>
     <string name="extension_kbd_extension_numbers_symbols">Numbers and symbols</string>
@@ -676,9 +690,6 @@
     <string name="app_shortcut_quick_keys_disabled">Emoji setup navigation disabled</string>
     <string name="app_shortcut_quick_keys_long_label">Setup Emojis</string>
     <string name="app_shortcut_quick_keys_short_label">Setup Emojis</string>
-
-    
-    
     
     <string name="extension_keyboard_enabled_off_summary">Extension keyboard disabled.</string>
     <string name="extension_keyboard_enabled_on_summary">Extension keyboard will be shown when swiping up above the keyboard.</string>
@@ -698,4 +709,15 @@
 
     <string name="setup_wizard_welcome_info_footnote">* Of course, AnySoftKeyboard is not evil. You are encouraged to look at our source code and verify that. Plus, we do not have <i>NETWORK</i> permissions, so we can not send any data off the device.</string>
     <string name="setup_wizard_welcome_privacy_action">Go to Privacy Policy…</string>
+    <string name="clear_all_dictionary_override">Clear overrides</string>
+
+    <string name="theme_case_type_override_dialog_title">Pick letter-case override</string>
+
+    <string name="theme_case_type_override_theme">Use theme case</string>
+    <string name="theme_case_type_override_os">Let Android decide (Auto)</string>
+    <string name="theme_case_type_override_lower">Always lowercase</string>
+    <string name="theme_case_type_override_upper">Always uppercase</string>
+
+    <string name="theme_case_type_override_title">Keyboard letter-case override</string>
+    <string name="theme_case_type_override_summary">How to determine letters-case in the keyboard view. Currently, %s</string>
 </resources>

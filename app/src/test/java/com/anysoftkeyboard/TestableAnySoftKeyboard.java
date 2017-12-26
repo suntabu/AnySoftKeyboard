@@ -28,8 +28,6 @@ import com.menny.android.anysoftkeyboard.SoftKeyboard;
 
 import org.junit.Assert;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.robolectric.Robolectric;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.shadows.ShadowSystemClock;
@@ -128,27 +126,18 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
 
     public void resetMockCandidateView() {
         Mockito.reset(mMockCandidateView);
-        Mockito.doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                boolean previousState = mCandidateShowsHint;
-                mCandidateShowsHint = false;
-                return previousState;
-            }
+        Mockito.doAnswer(invocation -> {
+            boolean previousState = mCandidateShowsHint;
+            mCandidateShowsHint = false;
+            return previousState;
         }).when(mMockCandidateView).dismissAddToDictionaryHint();
-        Mockito.doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                mCandidateShowsHint = true;
-                return null;
-            }
+        Mockito.doAnswer(invocation -> {
+            mCandidateShowsHint = true;
+            return null;
         }).when(mMockCandidateView).showAddToDictionaryHint(Mockito.any(CharSequence.class));
-        Mockito.doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                mCandidateShowsHint = false;
-                return null;
-            }
+        Mockito.doAnswer(invocation -> {
+            mCandidateShowsHint = false;
+            return null;
         }).when(mMockCandidateView).notifyAboutWordAdded(Mockito.any(CharSequence.class));
 
     }
@@ -346,7 +335,8 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
 
         private boolean mKeyboardsFlushed;
         private boolean mViewSet;
-        private int mKeyboardMode;
+        @InputModeId
+        private int mInputModeId;
 
         public TestableKeyboardSwitcher(@NonNull AnySoftKeyboard ime) {
             super(ime, RuntimeEnvironment.application);
@@ -358,8 +348,8 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
         }
 
         @Override
-        public /*was protected, now public*/ GenericKeyboard createGenericKeyboard(AddOn addOn, Context context, int layoutResId, int landscapeLayoutResId, String name, String keyboardId, int mode, boolean disableKeyPreview) {
-            return super.createGenericKeyboard(addOn, context, layoutResId, landscapeLayoutResId, name, keyboardId, mode, disableKeyPreview);
+        public /*was protected, now public*/ GenericKeyboard createGenericKeyboard(AddOn addOn, Context context, int layoutResId, int landscapeLayoutResId, String name, String keyboardId, int mode) {
+            return super.createGenericKeyboard(addOn, context, layoutResId, landscapeLayoutResId, name, keyboardId, mode);
         }
 
         public void verifyKeyboardsFlushed() {
@@ -389,13 +379,13 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
         }
 
         @Override
-        public void setKeyboardMode(@InputModeId int mode, EditorInfo attr, boolean restarting) {
-            mKeyboardMode = mode;
-            super.setKeyboardMode(mode, attr, restarting);
+        public void setKeyboardMode(@InputModeId int inputModeId, EditorInfo attr, boolean restarting) {
+            mInputModeId = inputModeId;
+            super.setKeyboardMode(inputModeId, attr, restarting);
         }
 
-        public int getKeyboardModeSet() {
-            return mKeyboardMode;
+        public int getInputModeId() {
+            return mInputModeId;
         }
 
         public void verifyNewViewNotSet() {
